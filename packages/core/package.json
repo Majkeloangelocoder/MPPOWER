@@ -1,0 +1,12 @@
+{
+  "name": "@mp-power/core",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Silniki domenowe MP POWER: progresja, deload, ocena sesji, rekordy. Zero zależności runtime.",
+  "exports": { ".": "./src/index.ts" },
+  "scripts": {
+    "test": "node --test \"src/**/*.test.ts\"",
+    "typecheck": "tsc -p tsconfig.json"
+  }
+}

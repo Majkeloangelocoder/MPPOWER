@@ -1,0 +1,16 @@
+{
+  "name": "@mp-power/web",
+  "version": "0.1.0",
+  "private": true,
+  "description": "MP POWER — API /api/v1, panel administracyjny i web checkout (Next.js).",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@mp-power/ai": "workspace:*",
+    "@mp-power/core": "workspace:*"
+  }
+}

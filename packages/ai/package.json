@@ -1,0 +1,12 @@
+{
+  "name": "@mp-power/ai",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Warstwa AI niezależna od dostawcy: adaptery Claude i OpenAI, routing zadań, fallback, bezpieczeństwo. Zero zależności runtime.",
+  "exports": { ".": "./src/index.ts" },
+  "scripts": {
+    "test": "node --test \"src/**/*.test.ts\"",
+    "typecheck": "tsc -p tsconfig.json"
+  }
+}

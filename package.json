@@ -1,0 +1,14 @@
+{
+  "name": "mp-power-coach",
+  "private": true,
+  "description": "MP POWER Coach — monorepo (Expo, Next.js, Supabase, pakiety domenowe)",
+  "scripts": {
+    "test": "pnpm -r --if-present test",
+    "typecheck": "pnpm -r --if-present typecheck"
+  },
+  "devDependencies": {
+    "typescript": "^6.0.0",
+    "@types/node": "^22.0.0"
+  },
+  "engines": { "node": ">=22.18" }
+}
