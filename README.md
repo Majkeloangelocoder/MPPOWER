@@ -4,67 +4,63 @@ Działający wycinek produktu od końca do końca: logowanie → trening z planu
 
 | Element | Ścieżka | Weryfikacja |
 | --- | --- | --- |
-| Silnik progresji, deload, gotowość, ocena sesji, rekordy | `packages/core/src/progression/` | 35 testów |
-| Cele żywieniowe z bezpiecznikami | `packages/core/src/nutrition/` | 5 testów |
-| Uprawnienia planów FREE / PRO / PREMIUM | `packages/core/src/billing/` | 6 testów |
+| Silnik progresji, deload, gotowość, ocena sesji, rekordy | `packages/core/src/progression/` | testy jednostkowe |
+| Cele żywieniowe z bezpiecznikami | `packages/core/src/nutrition/` | testy jednostkowe |
+| Uprawnienia planów FREE / PRO / PREMIUM | `packages/core/src/billing/` | testy jednostkowe |
 | Kontrakty API (wspólne typy aplikacji i serwera) | `packages/core/src/api/contracts.ts` | kontrola typów |
-| AI Gateway (Claude + zapasowo OpenAI), AI Review z kontrolą liczb, sygnały alarmowe | `packages/ai/src/` | 18 testów |
-| API: trening, uprawnienia, Stripe | `apps/web/` | kontrola typów* |
-| Aplikacja mobilna: logowanie, Dziś, Workout Player, podsumowanie | `apps/mobile-src/` | kontrola typów* |
-| Baza: 47 tabel, RLS, funkcje treningowe, historia ćwiczeń, zgody z rejestracji | `supabase/migrations/` | statyczna kontrola spójności |
+| AI Gateway (Claude + zapasowo OpenAI), AI Review z kontrolą liczb, sygnały alarmowe | `packages/ai/src/` | testy jednostkowe |
+| API: trening, uprawnienia, Stripe (Next.js 16) | `apps/web/` | `next build` + test E2E na lokalnym Supabase |
+| Aplikacja mobilna (Expo SDK 57): logowanie, Dziś, Workout Player, podsumowanie | `apps/mobile/` | kontrola typów, bundle Android/iOS/web, przeklikana wersja web |
+| Baza: 47 tabel, RLS, funkcje treningowe, historia ćwiczeń, zgody z rejestracji | `supabase/migrations/` | `supabase start` + test E2E (w tym RLS) |
 
-\* API i aplikację sprawdziłem kontrolą typów z uproszczonymi deklaracjami bibliotek (bez dostępu do sieci). Pełną kontrolę zrobi `pnpm -r typecheck` po instalacji pakietów. Nic z tego nie było jeszcze uruchomione na prawdziwym Supabase, Stripe ani telefonie — jeśli coś zgłosi błąd, wklej komunikat.
+**Status:** wszystko poza Stripe i prawdziwym telefonem zostało uruchomione: migracje na lokalnym Supabase, API, test E2E (`pnpm e2e`) i aplikacja w przeglądarce — rejestracja, trening, podsumowanie i cele na kolejny raz. Stripe wymaga kluczy; na telefonie sprawdź w Expo Go.
 
 ## 0. Wymagania
 
-Node.js 22.18+, pnpm, Git, Docker Desktop, telefon z aplikacją Expo Go (w tej samej sieci Wi-Fi co komputer).
+Node.js 22.18+, pnpm 10, Git, Docker Desktop, telefon z aplikacją Expo Go (w tej samej sieci Wi-Fi co komputer).
 
-## 1. Kod i testy
+## 1. Instalacja i testy
 
 ```bash
-cd mp-power-coach
 pnpm install
-cd packages/core && node --test "src/**/*.test.ts"
-cd ../ai && node --test "src/**/*.test.ts"
+pnpm test          # testy pakietów core i ai
+pnpm typecheck     # core, ai, web, mobile
 ```
 
 ## 2. Baza danych (lokalnie)
 
 ```bash
-npx supabase init
-npx supabase start      # wypisze adres API, klucz publiczny (publishable/anon) i serwisowy (secret/service_role)
-npx supabase db reset   # migracje + dane testowe: 20 ćwiczeń i program Full Body A/B
+pnpm db:start      # wypisze adres API, klucz publiczny (publishable) i serwisowy (secret)
+pnpm db:reset      # migracje + dane testowe: 20 ćwiczeń i program Full Body A/B (opcjonalnie — start już je wgrywa)
 ```
+
+`npx supabase status` pokaże klucze ponownie.
 
 ## 3. API (Next.js)
 
 ```bash
-cd apps/web
-pnpm add next react react-dom @supabase/supabase-js stripe zod
-pnpm add -D typescript @types/node @types/react
-cp ../../.env.example .env.local
-pnpm dev
+cp .env.example apps/web/.env.local
+pnpm dev:web
 ```
 
-W `.env.local`: `SUPABASE_URL=http://127.0.0.1:54321`, `SUPABASE_SECRET_KEY` (klucz serwisowy z kroku 2), `ANTHROPIC_API_KEY` (bez niego podsumowania są z reguł), `APP_URL=http://localhost:3000`.
+W `apps/web/.env.local`: `SUPABASE_URL=http://127.0.0.1:54321`, `SUPABASE_SECRET_KEY` (klucz serwisowy z kroku 2), `ANTHROPIC_API_KEY` (bez niego podsumowania są z reguł), `APP_URL=http://localhost:3000`.
+
+**Test końca do końca** (rejestracja → plan → dwa treningi → cele z progresji → izolacja danych innego użytkownika):
+
+```bash
+SUPABASE_PUBLISHABLE_KEY=sb_publishable_... pnpm e2e
+```
 
 ## 4. Aplikacja mobilna (Expo)
 
 ```bash
-# z katalogu głównego repozytorium
-cd apps
-npx create-expo-app@latest mobile --template default --no-install
-rm -rf mobile/app
-cp -R mobile-src/. mobile/     # Windows: skopiuj ręcznie zawartość folderu mobile-src do mobile
-cd ..
-pnpm install
 cd apps/mobile
-npx expo install @supabase/supabase-js @react-native-async-storage/async-storage react-native-url-polyfill expo-crypto expo-haptics
-cp .env.example .env           # wpisz adres IP komputera i klucz publiczny Supabase
-npx expo start                 # zeskanuj kod QR w Expo Go
+cp .env.example .env    # wpisz adres IP komputera i klucz publiczny Supabase
+cd ../..
+pnpm dev:mobile         # zeskanuj kod QR w Expo Go
 ```
 
-Telefon nie widzi „localhost” komputera — w `.env` aplikacji podaj adres IP komputera w sieci Wi-Fi (np. `http://192.168.1.20:3000` dla API i `http://192.168.1.20:54321` dla Supabase). Plik `.npmrc` (`node-linker=hoisted`) jest potrzebny, żeby Expo działało w monorepo pnpm.
+Telefon nie widzi „localhost” komputera — w `apps/mobile/.env` podaj adres IP komputera w sieci Wi-Fi (np. `http://192.168.1.20:3000` dla API i `http://192.168.1.20:54321` dla Supabase). Plik `.npmrc` (`node-linker=hoisted`) jest potrzebny, żeby Expo działało w monorepo pnpm. Ikony i ekran startowy to na razie domyślne Expo — dodaj własne w `apps/mobile/app.json` przed publikacją.
 
 **Test na telefonie**
 
@@ -91,7 +87,7 @@ Telefon nie widzi „localhost” komputera — w `.env` aplikacji podaj adres I
 ## 6. Produkcja (skrót)
 
 - Supabase w chmurze (region Frankfurt): `npx supabase login`, `npx supabase link`, `npx supabase db push`. Dane testowe nie trafiają tam same — na start wklej `supabase/seed.sql` w edytorze SQL, docelowo treści dodasz w panelu.
-- Vercel: import repozytorium, katalog `apps/web`, zmienne środowiskowe.
+- Vercel: import repozytorium, katalog główny projektu `apps/web`, zmienne środowiskowe.
 - Expo EAS Build → TestFlight i testy wewnętrzne Google Play. Przed publikacją: zakupy w aplikacji (RevenueCat), polityka prywatności, usuwanie konta w aplikacji, szyfrowany magazyn sesji.
 
 ## Zasady, których pilnuje kod

@@ -1,0 +1,28 @@
+{
+  "expo": {
+    "name": "MP POWER Coach",
+    "slug": "mp-power-coach",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "scheme": "mppower",
+    "userInterfaceStyle": "dark",
+    "ios": {
+      "bundleIdentifier": "pl.mppower.coach",
+      "supportsTablet": false
+    },
+    "android": {
+      "package": "pl.mppower.coach",
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "output": "single"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-status-bar"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}

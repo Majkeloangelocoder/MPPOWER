@@ -39,6 +39,8 @@ describe('double progression', () => {
     assert.match(r.explanation, /Pozostań przy 80 kg/);
     assert.match(r.explanation, /8\/8\/8/);
     assert.match(r.explanation, /RIR 2/);
+
+    assert.ok(!r.explanation.includes('..'), r.explanation);
   });
 
   it('wszystkie serie na górze zakresu z zapasem → +2,5 kg i powrót do dołu zakresu', () => {
@@ -48,6 +50,7 @@ describe('double progression', () => {
     assert.deepEqual(r.next.repsPerSet, [6, 6, 6]);
     assert.equal(r.confidence, 'high');
     assert.match(r.explanation, /82,5 kg/);
+    assert.ok(!r.explanation.includes('..'), r.explanation);
   });
 
   it('pełny zakres, ale za mały zapas → bez zwiększania', () => {

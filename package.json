@@ -4,11 +4,21 @@
   "description": "MP POWER Coach — monorepo (Expo, Next.js, Supabase, pakiety domenowe)",
   "scripts": {
     "test": "pnpm -r --if-present test",
-    "typecheck": "pnpm -r --if-present typecheck"
+    "typecheck": "pnpm -r --if-present typecheck",
+    "db:start": "supabase start",
+    "db:reset": "supabase db reset",
+    "db:stop": "supabase stop",
+    "dev:web": "pnpm --filter @mp-power/web dev",
+    "dev:mobile": "pnpm --filter @mp-power/mobile start",
+    "build:web": "pnpm --filter @mp-power/web build",
+    "e2e": "node --env-file-if-exists=.env.e2e scripts/e2e-smoke.mjs"
   },
   "devDependencies": {
-    "typescript": "^6.0.0",
-    "@types/node": "^22.0.0"
+    "@types/node": "^22.0.0",
+    "supabase": "^2.120.0",
+    "typescript": "^6.0.0"
   },
-  "engines": { "node": ">=22.18" }
+  "engines": {
+    "node": ">=22.18"
+  }
 }

@@ -58,6 +58,11 @@ function effortLabel(p: Prescription, rir: string): string {
  * więc działa także wtedy, gdy warstwa AI jest niedostępna.
  */
 export function buildExplanation(input: ExplainInput): string {
+  // Skrót „powt.” na końcu zdania nie dostaje drugiej kropki.
+  return explanationText(input).replace(/\.\.(?=\s|$)/g, '.');
+}
+
+function explanationText(input: ExplainInput): string {
   const { prescription: p, action, next, reasons } = input;
   const unit = p.loadType === 'time' ? 's' : 'powt.';
   const range = formatRange(p.repMin, p.repMax);

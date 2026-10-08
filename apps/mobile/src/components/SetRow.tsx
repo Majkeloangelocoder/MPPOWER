@@ -93,9 +93,10 @@ const styles = StyleSheet.create({
   rowInvalid: { borderColor: colors.danger },
   top: { flexDirection: 'row', alignItems: 'center', gap: space.s },
   label: { color: colors.muted, fontSize: 15, width: 64 },
-  field: { flexDirection: 'row', alignItems: 'baseline', gap: space.xs, flex: 1 },
+  field: { flexDirection: 'row', alignItems: 'baseline', gap: space.xs, flex: 1, minWidth: 0 },
   input: {
     flex: 1,
+    minWidth: 0,
     minHeight: 48,
     color: colors.text,
     fontFamily: fonts.display,
