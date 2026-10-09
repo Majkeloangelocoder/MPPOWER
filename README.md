@@ -62,6 +62,12 @@ pnpm dev:mobile         # zeskanuj kod QR w Expo Go
 
 Telefon nie widzi „localhost” komputera — w `apps/mobile/.env` podaj adres IP komputera w sieci Wi-Fi (np. `http://192.168.1.20:3000` dla API i `http://192.168.1.20:54321` dla Supabase). Plik `.npmrc` (`node-linker=hoisted`) jest potrzebny, żeby Expo działało w monorepo pnpm. Ikony i ekran startowy to na razie domyślne Expo — dodaj własne w `apps/mobile/app.json` przed publikacją.
 
+**Wersja demo w przeglądarce** (bez bazy i API — dane w pamięci przeglądarki, prawdziwy silnik progresji):
+
+```bash
+cd apps/mobile && pnpm demo:web    # wynik w apps/mobile/dist-demo
+```
+
 **Test na telefonie**
 
 1. Załóż konto (potwierdzenie 18+ i zgód zapisuje się w bazie razem z kontem).

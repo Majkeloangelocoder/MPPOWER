@@ -5,9 +5,21 @@
     "noEmit": true,
     "allowImportingTsExtensions": true,
     "paths": {
-      "@/*": ["./*"],
-      "@mp-power/core": ["../../packages/core/src/index.ts"]
+      "@/*": [
+        "./*"
+      ],
+      "@mp-power/core": [
+        "../../packages/core/src/index.ts"
+      ],
+      "@mp-power/ai": [
+        "../../packages/ai/src/index.ts"
+      ]
     }
   },
-  "include": ["**/*.ts", "**/*.tsx", ".expo/types/**/*.ts", "expo-env.d.ts"]
+  "include": [
+    "**/*.ts",
+    "**/*.tsx",
+    ".expo/types/**/*.ts",
+    "expo-env.d.ts"
+  ]
 }

@@ -11,3 +11,4 @@ supabase/.temp/
 supabase/.branches/
 .env.e2e
 expo-env.d.ts
+dist-demo/
