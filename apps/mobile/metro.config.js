@@ -9,6 +9,7 @@ if (process.env.EXPO_PUBLIC_DEMO === '1') {
   const redirects = new Map([
     [path.join(__dirname, 'src/lib/supabase.ts'), path.join(__dirname, 'src/demo/supabase.ts')],
     [path.join(__dirname, 'src/lib/api.ts'), path.join(__dirname, 'src/demo/api.ts')],
+    [path.join(__dirname, 'src/lib/photos.ts'), path.join(__dirname, 'src/demo/photos.ts')],
   ]);
   config.resolver.resolveRequest = (context, moduleName, platform) => {
     const resolved = context.resolveRequest(context, moduleName, platform);

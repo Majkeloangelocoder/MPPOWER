@@ -252,9 +252,16 @@ export default function WorkoutPlayerScreen() {
         <Pressable onPress={close} hitSlop={8} style={styles.topAction} accessibilityRole="button" accessibilityLabel="Wyjdź z treningu">
           <Text style={styles.topActionText}>Wyjdź</Text>
         </Pressable>
-        <Text style={styles.topTitle} numberOfLines={1}>
-          {payload.title ?? 'Trening'}
-        </Text>
+        <View style={styles.topCenter}>
+          <Text style={styles.topTitle} numberOfLines={1}>
+            {payload.title ?? 'Trening'}
+          </Text>
+          {payload.cycle ? (
+            <Text style={styles.topCycle} numberOfLines={1}>
+              Tydzień {payload.cycle.week}/{payload.cycle.totalWeeks} · {payload.cycle.label}
+            </Text>
+          ) : null}
+        </View>
         <Text style={styles.counter} accessibilityLabel={`Ćwiczenie ${index + 1} z ${payload.exercises.length}`}>
           {index + 1}/{payload.exercises.length}
         </Text>
@@ -338,7 +345,9 @@ const styles = StyleSheet.create({
   topBar: { flexDirection: 'row', alignItems: 'center', gap: space.m, paddingHorizontal: space.l, paddingBottom: space.s },
   topAction: { minHeight: 44, justifyContent: 'center' },
   topActionText: { color: colors.muted, fontSize: 16 },
-  topTitle: { color: colors.text, fontSize: 16, fontWeight: '600', flex: 1, textAlign: 'center' },
+  topCenter: { flex: 1, minWidth: 0, alignItems: 'center' },
+  topTitle: { color: colors.text, fontSize: 16, fontWeight: '600', textAlign: 'center' },
+  topCycle: { color: colors.progress, fontSize: 12, fontWeight: '600' },
   counter: { color: colors.muted, fontSize: 16, fontVariant: ['tabular-nums'] },
   content: { paddingHorizontal: space.l, paddingBottom: space.l, gap: space.m },
   exerciseName: { color: colors.text, fontFamily: fonts.display, fontSize: 34, fontWeight: '700', lineHeight: 38, marginTop: space.s },

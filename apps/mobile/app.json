@@ -19,7 +19,15 @@
     },
     "plugins": [
       "expo-router",
-      "expo-status-bar"
+      "expo-status-bar",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "MP POWER potrzebuje dostępu do zdjęć, aby dodać zdjęcia sylwetki.",
+          "cameraPermission": "MP POWER potrzebuje aparatu, aby zrobić zdjęcia sylwetki.",
+          "microphonePermission": false
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true

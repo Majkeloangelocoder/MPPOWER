@@ -24,7 +24,7 @@ function defaultMessage(status: number): string {
 }
 
 /** Wywołanie API z tokenem sesji Supabase; błędy zamienione na komunikaty dla użytkownika. */
-export async function apiFetch<T>(path: string, init: { method?: 'GET' | 'POST'; body?: unknown } = {}): Promise<T> {
+export async function apiFetch<T>(path: string, init: { method?: 'GET' | 'POST' | 'PUT'; body?: unknown } = {}): Promise<T> {
   if (!API_URL) throw new ApiError(0, 'config', 'Brak adresu API (EXPO_PUBLIC_API_URL w pliku .env).');
   const { data } = await supabase.auth.getSession();
   const token: string | undefined = data.session?.access_token;

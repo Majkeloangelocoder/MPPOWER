@@ -13,7 +13,7 @@ export class ApiError extends Error {
   }
 }
 
-export async function apiFetch<T>(path: string, init: { method?: 'GET' | 'POST'; body?: unknown } = {}): Promise<T> {
+export async function apiFetch<T>(path: string, init: { method?: 'GET' | 'POST' | 'PUT'; body?: unknown } = {}): Promise<T> {
   // Krótkie opóźnienie, żeby stany ładowania wyglądały jak w prawdziwej aplikacji.
   await new Promise((resolve) => setTimeout(resolve, 250));
   try {

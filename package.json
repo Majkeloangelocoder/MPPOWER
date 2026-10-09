@@ -11,7 +11,7 @@
     "dev:web": "pnpm --filter @mp-power/web dev",
     "dev:mobile": "pnpm --filter @mp-power/mobile start",
     "build:web": "pnpm --filter @mp-power/web build",
-    "e2e": "node --env-file-if-exists=.env.e2e scripts/e2e-smoke.mjs"
+    "e2e": "node --env-file-if-exists=.env.e2e scripts/e2e-smoke.mjs && node --env-file-if-exists=.env.e2e scripts/e2e-onboarding.mjs"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

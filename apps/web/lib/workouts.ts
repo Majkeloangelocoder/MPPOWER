@@ -1,5 +1,7 @@
 import {
+  applyWeek,
   assessReadiness,
+  fitTargetToSets,
   countNewRecords,
   detectRecords,
   hasFeature,
@@ -23,10 +25,12 @@ import {
   type ReviewRecord,
   type ReviewTarget,
   type ScoredExercise,
+  type WeekPlan,
 } from '@mp-power/core';
 import { generateSessionReview } from '@mp-power/ai';
 import { aiGateway } from './ai';
 import { getEntitlements } from './entitlements';
+import { loadWeekPlan, toHomeCycle } from './profile';
 import { HttpError } from './http';
 import { supabaseAdmin } from './supabase-admin';
 
@@ -39,6 +43,8 @@ interface SessionRow {
   status: 'in_progress' | 'completed' | 'abandoned';
   started_at: string;
   review: StoredReview | null;
+  cycle_week: number | null;
+  program_day_id: string | null;
 }
 interface SessionExerciseRow {
   id: string;
@@ -64,6 +70,7 @@ interface PrescriptionRow {
   progression_model: ProgressionModel;
   max_sets: number | null;
   notes: string | null;
+  block: 'warmup' | 'main' | 'accessory' | 'finisher';
 }
 type StoredReview = Omit<CompleteSessionResponse, 'sessionId' | 'alreadyCompleted'>;
 
@@ -85,7 +92,7 @@ export function mapRpcError(error: { code?: string; message: string }): Error {
 async function loadSession(userId: string, sessionId: string): Promise<SessionRow> {
   const { data, error } = await db()
     .from('workout_sessions')
-    .select('id, title, status, started_at, review')
+    .select('id, title, status, started_at, review, cycle_week, program_day_id')
     .eq('id', sessionId)
     .eq('user_id', userId)
     .maybeSingle();
@@ -118,7 +125,7 @@ async function loadPrescriptions(ids: string[]): Promise<Map<string, Prescriptio
   if (ids.length === 0) return new Map();
   const { data, error } = await db()
     .from('program_exercises')
-    .select('id, sets, rep_min, rep_max, target_rir, rest_seconds, tempo, progression_model, max_sets, notes')
+    .select('id, sets, rep_min, rep_max, target_rir, rest_seconds, tempo, progression_model, max_sets, notes, block')
     .in('id', ids);
   if (error) throw error;
   return new Map((data ?? []).map((p: PrescriptionRow) => [p.id, { ...p, target_rir: Number(p.target_rir) }] as const));
@@ -262,6 +269,29 @@ function toPrescription(exerciseId: string, meta: ExerciseRow, row: Prescription
   };
 }
 
+/** Tydzień cyklu zapisany przy starcie sesji (tylko plan spersonalizowany). */
+async function loadSessionWeek(session: SessionRow): Promise<{ week: WeekPlan; totalWeeks: number } | null> {
+  if (session.cycle_week === null || !session.program_day_id) return null;
+  const { data, error } = await db()
+    .from('program_days')
+    .select('program_id, programs!inner(cycle_weeks)')
+    .eq('id', session.program_day_id)
+    .maybeSingle();
+  if (error) throw error;
+  const row = data as unknown as { program_id: string; programs: { cycle_weeks: number | null } } | null;
+  if (!row?.programs.cycle_weeks) return null;
+  const week = await loadWeekPlan(row.program_id, session.cycle_week);
+  return week ? { week, totalWeeks: row.programs.cycle_weeks } : null;
+}
+
+/** Recepta na tydzień cyklu: serie i zapas RIR według fazy (np. mniej serii w odciążeniu). */
+function forWeek(p: Prescription, row: PrescriptionRow | undefined, week: WeekPlan | null): Prescription {
+  if (!week) return p;
+  const block = row?.block === 'accessory' || row?.block === 'finisher' ? row.block : 'main';
+  const w = applyWeek({ sets: p.sets, targetRir: p.targetRir, block }, week);
+  return { ...p, sets: w.sets, targetRir: w.targetRir };
+}
+
 // ---------------------------------------------------------------------------
 // Komendy
 // ---------------------------------------------------------------------------
@@ -270,22 +300,25 @@ export async function buildPlayerPayload(userId: string, sessionId: string): Pro
   const session = await loadSession(userId, sessionId);
   const rows = (await loadSessionExercises(userId, sessionId)).filter((r) => !r.skipped);
   const exerciseIds = unique(rows.map((r) => r.exercise_id));
-  const [meta, prescriptions, targets] = await Promise.all([
+  const [meta, prescriptions, targets, cycle] = await Promise.all([
     loadExercises(exerciseIds),
     loadPrescriptions(unique(rows.flatMap((r) => (r.program_exercise_id ? [r.program_exercise_id] : [])))),
     loadLatestTargets(userId, exerciseIds),
+    loadSessionWeek(session),
   ]);
 
   return {
     sessionId: session.id,
     title: session.title,
     startedAt: session.started_at,
+    cycle: cycle ? toHomeCycle(cycle.week, cycle.totalWeeks) : null,
     exercises: rows.map((r) => {
       const m = meta.get(r.exercise_id);
       if (!m) throw new Error(`Exercise ${r.exercise_id} not found`);
       const row = r.program_exercise_id ? prescriptions.get(r.program_exercise_id) : undefined;
-      const p = toPrescription(r.exercise_id, m, row, undefined);
+      const p = forWeek(toPrescription(r.exercise_id, m, row, undefined), row, cycle?.week ?? null);
       const latest = targets.get(r.exercise_id);
+      const target = latest && latest.next.exerciseId === r.exercise_id ? latest.next : null;
       return {
         sessionExerciseId: r.id,
         exerciseId: r.exercise_id,
@@ -302,7 +335,7 @@ export async function buildPlayerPayload(userId: string, sessionId: string): Pro
           model: p.model,
           notes: row?.notes ?? null,
         },
-        target: latest && latest.next.exerciseId === r.exercise_id ? latest.next : null,
+        target: target && cycle ? fitTargetToSets(target, p.sets) : target,
         why: latest?.explanation ?? null,
       };
     }),
@@ -356,7 +389,7 @@ export async function completeSession(userId: string, sessionId: string, body: C
   const completedAt = (requested.getTime() > now.getTime() ? now : requested).toISOString();
   const exerciseIds = unique(finalRows.map((r) => r.exercise_id));
 
-  const [meta, prescriptions, variants, latestTargets, history, bests, readiness, level, entitlements] = await Promise.all([
+  const [meta, prescriptions, variants, latestTargets, history, bests, readiness, level, entitlements, cycle] = await Promise.all([
     loadExercises(exerciseIds),
     loadPrescriptions(unique(finalRows.flatMap((r) => (r.program_exercise_id ? [r.program_exercise_id] : [])))),
     loadProgressionVariants(exerciseIds),
@@ -366,7 +399,9 @@ export async function completeSession(userId: string, sessionId: string, body: C
     loadReadiness(userId, now),
     loadLevel(userId),
     getEntitlements(userId),
+    loadSessionWeek(session),
   ]);
+  const holdProgression = cycle?.week.holdProgression ?? false;
   const advanced = hasFeature(entitlements, 'progression_advanced');
 
   const recommendations: Array<{ rec: Recommendation; name: string; loadType: LoadType }> = [];
@@ -377,7 +412,7 @@ export async function completeSession(userId: string, sessionId: string, body: C
     const m = meta.get(row.exercise_id);
     if (!m) throw new HttpError(400, 'unknown_exercise', 'Nieznane ćwiczenie w treningu.');
     const programRow = row.program_exercise_id ? prescriptions.get(row.program_exercise_id) : undefined;
-    const base = toPrescription(row.exercise_id, m, programRow, variants.get(row.exercise_id));
+    const base = forWeek(toPrescription(row.exercise_id, m, programRow, variants.get(row.exercise_id)), programRow, cycle?.week ?? null);
     // FREE: podstawowa double progression; PRO/PREMIUM: model z recepty (RIR, RPE, objętość).
     const prescription: Prescription = advanced ? base : { ...base, model: 'double_progression' };
 
@@ -389,9 +424,12 @@ export async function completeSession(userId: string, sessionId: string, body: C
     scored.push({ prescription, target: latestTargets.get(row.exercise_id)?.next ?? null, sets, skipped: row.skipped });
     if (row.skipped || !sets.some((s) => s.completed)) continue;
 
-    const exposure: ExerciseExposure = { sessionId, performedAt: completedAt, sets };
-    const rec = recommendNext(prescription, [...(history.get(row.exercise_id) ?? []), exposure], { level, readiness });
-    recommendations.push({ rec, name: m.name_pl, loadType: m.load_type });
+    // Tydzień odciążenia nie zmienia celów progresji — rekordy liczą się normalnie.
+    if (!holdProgression) {
+      const exposure: ExerciseExposure = { sessionId, performedAt: completedAt, sets };
+      const rec = recommendNext(prescription, [...(history.get(row.exercise_id) ?? []), exposure], { level, readiness });
+      recommendations.push({ rec, name: m.name_pl, loadType: m.load_type });
+    }
     for (const record of detectRecords(prescription.loadType, sets, bests.get(row.exercise_id) ?? {})) {
       records.push({ exerciseId: row.exercise_id, name: m.name_pl, record });
     }

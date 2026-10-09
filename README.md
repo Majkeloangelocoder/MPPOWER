@@ -48,7 +48,7 @@ W `apps/web/.env.local`: `SUPABASE_URL=http://127.0.0.1:54321`, `SUPABASE_SECRET
 **Test końca do końca** (rejestracja → plan → dwa treningi → cele z progresji → izolacja danych innego użytkownika):
 
 ```bash
-SUPABASE_PUBLISHABLE_KEY=sb_publishable_... pnpm e2e
+SUPABASE_PUBLISHABLE_KEY=sb_publishable_... SUPABASE_SECRET_KEY=sb_secret_... pnpm e2e
 ```
 
 ## 4. Aplikacja mobilna (Expo)
@@ -76,6 +76,17 @@ cd apps/mobile && pnpm demo:web    # wynik w apps/mobile/dist-demo
 4. Zakończ trening → podsumowanie: ocena, rekordy, cele na następny raz z wyjaśnieniem „Dlaczego?”.
 5. Przy kolejnym treningu tego dnia pola są już wypełnione celami z silnika progresji.
 
+## Profil startowy i plan na 8 tygodni
+
+Po rejestracji użytkownik trafia do ankiety (7 kroków, każdy zapisuje się od razu, można przerwać i wrócić): cel → doświadczenie → płeć, rok urodzenia, wzrost, masa → dni w tygodniu, długość treningu, miejsce i sprzęt, kontuzje → obwody (talia, brzuch, klatka, ramię, udo; biodra opcjonalnie) → zdjęcia sylwetki przód/bok/tył (opcjonalnie, za zgodą) → podsumowanie.
+
+- Do czasu uzupełnienia danych i obwodów użytkownik trenuje z **planem ogólnym**; ekran Dziś pokazuje postęp profilu.
+- Komplet danych odblokowuje **„Zaprojektuj mój plan”**: generator (`packages/core/src/planning/`) dobiera podział (FBW / góra-dół / push-pull-nogi), ćwiczenia pod sprzęt, poziom i kontuzje, dawki pod cel, a z obwodu talii względem wzrostu decyduje o finiszerze kondycyjnym. Do tego orientacyjne kalorie i makroskładniki.
+- Cykl: tydz. 1 wprowadzenie, 2–3 budowanie, 4 odciążenie + pomiary kontrolne, 5–6 budowanie II, 7 szczyt, 8 odciążenie + pomiary i zdjęcia. Tydzień zapisuje się przy starcie treningu; odciążenie nie zmienia celów progresji.
+- Zdjęcia trafiają do prywatnego kubełka `body-photos`; aplikacja dostaje podpisane adresy ważne godzinę.
+
+Test E2E tej części: `scripts/e2e-onboarding.mjs` (uruchamiany przez `pnpm e2e`, wymaga też `SUPABASE_SECRET_KEY`).
+
 ## 5. API — endpointy
 
 | Endpoint | Metoda | Co robi | Dostęp |
@@ -84,6 +95,9 @@ cd apps/mobile && pnpm demo:web    # wynik w apps/mobile/dist-demo
 | `/api/v1/sessions/{id}` | GET | Wznowienie treningu | Właściciel sesji |
 | `/api/v1/sessions/{id}/complete` | POST | Serie → progresja → rekordy → ocena → AI Review → zapis atomowy | Właściciel; tekst AI w PRO, w FREE z reguł |
 | `/api/v1/me/entitlements` | GET | Plan, funkcje, limity | Zalogowany |
+| `/api/v1/me/home` | GET | Ekran Dziś: plan ogólny albo spersonalizowany, tydzień cyklu, kompletność profilu | Zalogowany |
+| `/api/v1/me/profile` | GET / PUT | Ankieta startowa: cel, doświadczenie, dane, trening, kontuzje, obwody, zgody, zdjęcia | Zalogowany; kontuzje wymagają zgody na dane o zdrowiu |
+| `/api/v1/programs/generate` | POST | Projekt planu na cykl 8 tygodni (409, gdy brakuje danych lub obwodów) | Zalogowany |
 | `/api/v1/billing/checkout` | POST | Stripe Checkout z trialem i kodami | Zalogowany |
 | `/api/v1/billing/portal` | POST | Stripe Customer Portal | Zalogowany z zakupem na web |
 | `/api/v1/billing/stripe-webhook` | POST | Subskrypcje → uprawnienia (idempotentnie) | Podpis Stripe |

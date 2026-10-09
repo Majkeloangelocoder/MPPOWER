@@ -63,7 +63,7 @@ export default function SignInScreen() {
       });
       if (error) throw error;
       if (data.session) {
-        router.replace('/');
+        router.replace('/onboarding');
       } else {
         setMessage('Wysłaliśmy link potwierdzający na Twój e-mail. Po potwierdzeniu zaloguj się.');
         setMode('signIn');
